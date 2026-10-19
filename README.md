@@ -6,7 +6,7 @@
 
 Tsinghua University · <sup>∗</sup> Equal contribution
 
-[🚀 Quick Start](#quick-start) · [📊 Reproduce Results](docs/REPRODUCE.md) · [⚙️ Environment](docs/ENVIRONMENT.md) · [📚 Citation](#citation)
+[🚀 Quick Start](#quick-start) · [🔬 Section 3](#section-3) · [📊 Reproduce Results](docs/REPRODUCE.md) · [⚙️ Environment](docs/ENVIRONMENT.md) · [📚 Citation](#citation)
 
 </div>
 
@@ -77,8 +77,46 @@ First-use kernel compilation can take several minutes.
 
 Use `--method both --steps 2` to check both vanilla and BLD, or add `--model gdn`
 or `--model gla` to check a transfer architecture. A fresh Conda environment has
-passed this BLD smoke test and all nine CPU checks; see the
+passed this BLD smoke test and the CPU release checks; see the
 [validation results](docs/ENVIRONMENT.md#clean-environment-checks).
+
+<a id="section-3"></a>
+
+## 🔬 Section 3: Competing Learning
+
+These controlled experiments train a 3.6M KDA–attention hybrid on locally generated
+**Spaced Retrieval** data: five-digit keys with retrieval gaps of 64 and 8,192 tokens.
+Run them on an allocated GPU in the installed environment. The model configuration
+is [retrieval.json](configs/model/retrieval.json); no pretrained weights or DCLM data
+are required.
+
+| Paper | Experiment and metric | Code |
+| --- | --- | --- |
+| §3.1 | Spaced Retrieval data and greedy answer accuracy | [Data and accuracy metrics](experiments/retrieval/core.py), [model configuration](configs/model/retrieval.json) |
+| §3.2, Figure 1 | Signed layer retrieval ability from counterfactual interventions | [Attribution metric](experiments/retrieval/core.py), [evaluation entry](experiments/retrieval/run.py) |
+| §3.3.1, Figures 2/4 | Baseline retrieval learning, KDA block freezing, and unfreezing | [Training and interventions](experiments/retrieval/run.py), [full sweep](scripts/run_retrieval.sh) |
+| §3.3.2, Figure 5 | Attention gradient norm relative to a never-frozen baseline | [Paired gradient experiment](experiments/retrieval/gradients.py), [ten-seed sweep](scripts/run_gradients.sh) |
+| §3.3.3, Figure 3 | Final retrieval ability across short/long-gap mixtures | [Mixture training](experiments/retrieval/run.py), [endpoint aggregation and plots](experiments/plot.py) |
+
+```bash
+# Spaced Retrieval and layer attribution (Figures 1–2):
+python -m experiments.retrieval.run --output outputs/retrieval/baseline
+# Freeze KDA blocks after 175 updates (Figure 4):
+python -m experiments.retrieval.run --output outputs/retrieval/frozen --freeze-step 175
+# Paired gradient trajectories (Figure 5):
+python -m experiments.retrieval.gradients --output outputs/gradients/seed0
+# Train with 10% short-gap examples (Figure 3):
+python -m experiments.retrieval.run --output outputs/retrieval/short10 --short-percent 10
+```
+
+The **retrieval ability score** measures the signed, bidirectional change in answer
+logit margin under a counterfactual mixer-output replacement. Greedy retrieval
+accuracy is recorded separately. Figures 2/4 average the two same-family layer
+scores; Figure 3 sums them before averaging across seeds. Figure 5 uses paired
+attention-gradient ratios. Use a new output directory when repeating a run.
+
+**[Section 3 reproduction guide →](docs/REPRODUCE.md#section-3)** includes metric
+definitions, output fields, unfreezing commands, complete sweeps, and plotting.
 
 <a id="reproduce-results"></a>
 

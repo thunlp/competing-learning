@@ -77,6 +77,27 @@ class ReleaseTests(unittest.TestCase):
         self.assertEqual(opt.state[model.weight]['step'].item(),2)
         self.assertFalse(torch.equal(model.weight,paused))
 
+    def test_retrieval_scores_and_mixture_aggregation(self):
+        from experiments.retrieval.core import summarize_values
+        from experiments.plot import mixture_scores
+        summary=summarize_values([-1.,1.,3.])
+        self.assertEqual(summary['mean'],1.)
+        self.assertEqual(summary['n'],3)
+        self.assertAlmostEqual(summary['se'],(4/3)**.5)
+        self.assertEqual(summarize_values([2.])['se'],0.)
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            for seed,means in enumerate(([-1.,2.,3.,4.],[5.,6.,7.,8.])):
+                directory=root/f'seed{seed}'/'short10'
+                directory.mkdir(parents=True)
+                scores={str(layer):{'mean':value} for layer,value in enumerate(means)}
+                (directory/'eval_1500.json').write_text(json.dumps(
+                    {'step':1500,'contribution':{'8192':scores}}))
+            # Family sums are (2, 6) and (12, 14), giving seed means (7, 10).
+            self.assertEqual(mixture_scores(root,'8192',1500)[10].tolist(),[7.,10.])
+            with self.assertRaises(ValueError):
+                mixture_scores(root,'8192',1000)
+
     def test_muon_and_adam_lr_ratio_is_preserved(self):
         from preparation import prepare_optimizers
         from types import SimpleNamespace

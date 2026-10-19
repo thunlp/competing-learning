@@ -26,42 +26,100 @@ Early pretraining uses 262,144 tokens per update, AdamW at 1e-4, linear warmup, 
 
 For an interrupted run, call `train.py` with the same resolved arguments plus `--resume_path <ckpt_directory> --resume_step <update>`. This restores optimizer, scheduler, RNG, and rank-specific dataloader state. The shell launcher starts each pretraining portion with fresh optimizer and schedule state and does not automatically resume interrupted runs.
 
-## Spaced Retrieval and attribution (Section 3, Appendix A)
+<a id="section-3"></a>
+
+## Section 3: Competing Learning
+
+Use one allocated GPU and the installed training environment. All synthetic data are generated locally; these experiments train from scratch without an external tokenizer, pretrained weights, or DCLM data. Each training command requires a new output directory.
+
+### Spaced Retrieval (Section 3.1)
+
+[Data generation](../experiments/retrieval/core.py) constructs five-digit keys with a delimiter, a gap of 64 or 8192 spaces, and a retrieval query. The model has four blocks in KDA–Attention–KDA–Attention order, hidden width 256, FFN width 512, and a twelve-symbol vocabulary; see [the configuration](../configs/model/retrieval.json). There are 50,000 distinct training keys and 2,000 held-out attribution pairs per gap. Original and counterfactual held-out keys are excluded from training.
+
+[The training entry point](../experiments/retrieval/run.py) defaults to 1,500 AdamW updates, 32 examples per update, and a 50:50 short/long-gap mixture. The learning rate warms up for 100 updates to 3e-4 and decays to 1e-5. Cross-entropy is computed only on the five answer tokens. Exact integer quotas implement each requested mixture, and the short/long losses accumulate before one optimizer update.
+
+### Layer retrieval ability and baseline (Section 3.2, Figure 1; Section 3.3.1, Figure 2)
 
 ```bash
-# Baseline, paired gaps 64/8192:
 python -m experiments.retrieval.run --output outputs/retrieval/baseline
-# Freeze complete KDA blocks after 175 updates:
+python -m experiments.plot attribution --input outputs/retrieval/baseline \
+  --labels Vanilla --gap 8192 --output outputs/figures/baseline.pdf
+```
+
+`core.causal_contributions` implements the intervention in Figure 1 and Equations (6)–(7). For a paired input with correct digit `a` and counterfactual digit `b`, the answer margin is `m(z; a, b) = z[a] - z[b]`. Replace only the selected layer's mixer output at the prediction position with that from its counterfactual input, before residual addition. The layer's score is the drop in this margin, averaged over both replacement directions and all held-out pairs. The residual input, MLP, downstream layers, and model weights retain their normal computation.
+
+Each pair probes one answer position, balanced across all five positions. Scores are signed logit-margin changes, retain negative values, and are not normalized shares. In Figures 2/4, a KDA curve averages layers 0 and 2; an attention curve averages layers 1 and 3. The plot command shows these family means for each input run. Use `--gap 64` for the corresponding short-gap analysis.
+
+`core.native_accuracy` separately performs greedy autoregressive generation of all five answer digits. Its `first_accuracy`, `character_accuracy`, and `exact_accuracy` fields report first-digit, per-digit, and whole-key accuracy as fractions in [0, 1]. These accuracy fields and the signed retrieval ability score measure different quantities.
+
+### Freezing and unfreezing (Section 3.3.1, Figure 4)
+
+```bash
+# Freeze entire KDA blocks after 175 completed updates:
 python -m experiments.retrieval.run --output outputs/retrieval/frozen --freeze-step 175
-# Resume their updates after update 500, retaining their paused Adam moments:
+# Resume their updates after update 500:
 python -m experiments.retrieval.run --output outputs/retrieval/unfrozen \
   --freeze-step 175 --unfreeze-step 500
-# Change the share of short-gap examples:
-python -m experiments.retrieval.run --output outputs/retrieval/short10 --short-percent 10
-# All freeze timings, mixture ratios, and three seeds:
-bash scripts/run_retrieval.sh
-```
-
-The model has four blocks in KDA–Attention–KDA–Attention order, hidden width 256, FFN width 512, and a twelve-symbol vocabulary. There are 50,000 distinct training keys and 2,000 held-out attribution pairs. Original and counterfactual held-out keys are excluded from training. Training uses 32 examples per update and five answer-token losses. Exact integer quotas implement the short/long mixture; both gap losses accumulate before the optimizer update.
-
-`core.py` retains the original data generation and signed bidirectional mixer-output intervention. It replaces only the selected layer's mixer output at the prediction position and averages the two directions. Scores remain signed and are not normalized to sum to one. `eval_<step>.json` contains accuracy and per-layer score summaries; `attribution_<step>.pt` retains individual effects. Checkpoints preserve Adam moments, scheduler, and RNG. `--resume` accepts a checkpoint from the same seed/data/mixture and can branch into another freezing schedule.
-
-```bash
 python -m experiments.plot attribution \
-  --input outputs/retrieval/baseline outputs/retrieval/frozen \
-  --labels Vanilla Frozen --output outputs/figures/attribution.pdf
+  --input outputs/retrieval/baseline outputs/retrieval/frozen outputs/retrieval/unfrozen \
+  --labels Vanilla Frozen Unfrozen --gap 8192 --output outputs/figures/interventions.pdf
 ```
 
-## Gradient amplification (Section 3.3.2, Figure 5)
+`--freeze-step s` starts masking updates to entire KDA blocks 0 and 2 at update `s + 1`, including their mixers, MLPs, and normalization. Other components remain trainable, and gradients still propagate through frozen blocks. `--unfreeze-step 500` resumes KDA updates at 501. Optimizer moments, the learning-rate schedule, random state, and data order continue through the intervention; unfreezing does not restart warmup. `--resume <checkpoint.pt>` resumes a saved run with the same seed, data seed, model configuration, and mixture and can branch into another freezing schedule.
+
+### Gradient evidence (Section 3.3.2, Figure 5)
 
 ```bash
-python -m experiments.retrieval.gradients --output outputs/gradients/seed0
+# One seed, freezing after 175 and unfreezing after 225 updates:
+python -m experiments.retrieval.gradients --output outputs/gradients/example \
+  --freeze-step 175 --unfreeze-step 225 --steps 425
+# Paper sweep: freeze after 100/150/175 updates, ten seeds per timing:
 bash scripts/run_gradients.sh
 python -m experiments.plot gradients --input outputs/gradients/freeze175 \
-  --output outputs/figures/gradients.pdf
+  --labels freeze175 --output outputs/figures/gradients.pdf
 ```
 
-The gradient experiment freezes only the two KDA mixers, as specified in Appendix I.1. Baseline, frozen, and unfrozen branches share initialization, batches, optimizer states at branching, and the baseline's per-update clipping factor. Backward passes include all parameters before frozen updates are masked. The diagnostic measures the norm of the mean gradient over 32 fixed training examples on the first answer token at gap 8192. The default freezes after 175 updates, branches to unfreezing after 225, and ends at 425. The script runs all three displayed timings and ten seeds. Plotting takes the geometric mean of seed-paired ratios per attention mixer, then the arithmetic mean over the two attention mixers.
+[The gradient experiment](../experiments/retrieval/gradients.py) freezes only the two KDA **mixers**, following Appendix I.1. Baseline, frozen, and unfrozen branches share initialization, batches, optimizer states at branching, and the baseline's per-update clipping factor. Full backward passes precede masking of frozen updates; unfreezing resumes paused Adam moments.
+
+`probe` measures unclipped gradients of first-answer-token cross-entropy on 32 fixed training examples at gap 8192. For each attention mixer, it takes the L2 norm of the **mean gradient vector** over examples, then divides by the never-frozen baseline norm at the same step and seed. The plot takes the geometric mean of these paired ratios across seeds separately for each attention mixer, then the arithmetic mean over the two mixers. Ratios above 1 indicate amplification relative to the baseline. No temporal smoothing is applied. Change `--input` to `freeze100` or `freeze150` for the other timings.
+
+### Gap-mixture experiments (Section 3.3.3, Figure 3)
+
+```bash
+# One mixture: 10% short-gap and 90% long-gap examples:
+python -m experiments.retrieval.run --output outputs/retrieval/short10 --short-percent 10
+# Complete Figure 3 grid:
+for seed in 0 1 2; do
+  for percent in {0..100..10}; do
+    python -m experiments.retrieval.run \
+      --output "outputs/retrieval/seed${seed}/short${percent}" \
+      --seed "$seed" --short-percent "$percent"
+  done
+done
+python -m experiments.plot mixture --input outputs/retrieval --labels Hybrid \
+  --gap 8192 --step 1500 --output outputs/figures/mixtures.pdf
+```
+
+`--short-percent` controls the fraction of training examples with gap 64; all remaining examples use gap 8192. Thus 0 is pure long-gap training and 100 is pure short-gap training. Both gaps are evaluated for every mixture. Figure 3 uses final-checkpoint scores: sum the two layer scores within each mixer family **before** averaging over seeds, as specified in Appendix A.3. `experiments.plot.mixture_scores` implements this aggregation from `seed*/short*/eval_1500.json`; `--gap 64` selects short-gap evaluation. The plot averages the available seeds at each mixture, so complete the three-seed grid for the paper setting.
+
+### Full sweep and output fields
+
+```bash
+# Figures 2–4: baseline, all freeze/unfreeze timings, and all mixtures; seeds 0/1/2:
+bash scripts/run_retrieval.sh
+# Figure 5: paired gradient experiments, ten seeds per timing:
+bash scripts/run_gradients.sh
+```
+
+The full retrieval sweep writes `outputs/retrieval/seed<seed>/{baseline,freeze<step>,unfreeze<step>,short<percent>}/`. The gradient sweep writes `outputs/gradients/freeze<step>/seed<seed>/`. Set `OUTPUT` to change either sweep's output root and `PYTHON` to select its interpreter. Use either the full retrieval sweep or the separate mixture grid above when populating the same output root.
+
+| File | Contents and metric fields |
+| --- | --- |
+| `protocol.json` | Resolved experiment arguments for each retrieval run. |
+| `eval_<step>.json` | `contribution[gap][layer]` contains the signed retrieval score's `mean`, standard error `se`, and pair count `n`; `native[gap]` contains greedy accuracy fields. Evaluation defaults to every 25 updates and the final update. |
+| `attribution_<step>.pt` | Per-pair signed effects in `[gap]["effect"][layer]`, auxiliary probability changes, probed positions, and same-input replacement checks. |
+| `checkpoint_<step>.pt` | Model, optimizer, scheduler, RNG states, update, and experiment arguments for resumption. |
+| `gradients.jsonl` | One record per measured update with `seed`, `step`, raw `norms[branch][layer]`, and baseline-normalized `ratios[branch][layer]`; attention layer IDs are `"1"` and `"3"`. |
 
 ## CSR, Recall, WikiText-2, and RULER (Tables 1–2, Appendix E)
 

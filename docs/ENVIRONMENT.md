@@ -64,7 +64,7 @@ PYTHONNOUSERSITE=1 HF_HOME="$PWD/outputs/cpu-check/hf" \
   python -m unittest discover -s tests -v
 ```
 
-All nine checks passed in the clean environment. For the GPU check, use:
+All CPU release checks passed in the clean environment. For the GPU check, use:
 
 ```bash
 TMPDIR=/tmp PYTHONNOUSERSITE=1 bash scripts/smoke_test.sh \
@@ -95,4 +95,4 @@ Validated on 2026-10-19 with the runtime and A800 GPU listed above. A 1,254,787-
 
 All eight gradient norms were finite and nonzero. Both pretraining portions saved checkpoints and model exports; both final models reloaded and produced finite GPU logits. BLD recurrent weights matched initialization exactly during early pretraining, its attention weights changed, and recurrent weights changed after unfreezing. The paper configuration files were unchanged.
 
-The first update took approximately 410 seconds including cold compilation/autotuning; cached updates took approximately 0.54–0.67 seconds. These synthetic-run losses and timings validate execution only; they are not paper benchmark results. The CPU release suite also passed all nine checks.
+The first update took approximately 410 seconds including cold compilation/autotuning; cached updates took approximately 0.54–0.67 seconds. These synthetic-run losses and timings validate execution only; they are not paper benchmark results. The CPU release suite also passed.
