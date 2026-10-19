@@ -1,0 +1,3 @@
+# Install requirements.txt first, then this file with --no-build-isolation.
+causal-conv1d==1.7.0
+flash-attn==2.8.3

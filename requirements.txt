@@ -1,0 +1,18 @@
+# Install a CUDA-enabled PyTorch build before the remaining dependencies.
+torch==2.8.0
+transformers==4.51.0
+accelerate==1.12.0
+datasets==4.5.0
+flash-linear-attention==0.4.2
+torchdata==0.11.0
+safetensors==0.7.0
+typed-argument-parser==1.11.0
+einops==0.8.2
+numpy==2.4.2
+tqdm==4.67.3
+triton==3.4.0
+packaging==26.0
+ninja==1.13.0
+setuptools==80.10.1
+wheel==0.46.3
+# CUDA extensions: install separately with --no-build-isolation (see README).

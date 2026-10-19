@@ -1,0 +1,10 @@
+name: bld
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - python=3.11.14
+  - pip=26.2.1
+  - curl
+  - pip:
+      - -r requirements-lock.txt

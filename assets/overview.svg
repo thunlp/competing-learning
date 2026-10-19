@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 300" role="img" aria-labelledby="title desc">
+  <title id="title">Better Layer Division: two-stage pretraining</title>
+  <desc id="desc">Stage 1 uses AdamW and freezes complete recurrent blocks. Stage 2 loads Stage 1 weights, unfreezes every block, and starts Muon with auxiliary AdamW.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/>
+    </marker>
+  </defs>
+  <rect width="1120" height="300" rx="12" fill="#fff"/>
+  <g font-family="Arial, Helvetica, sans-serif" fill="#1e293b">
+    <rect x="20" y="22" width="500" height="236" rx="14" fill="#f8fafc" stroke="#dbe3ed"/>
+    <rect x="600" y="22" width="500" height="236" rx="14" fill="#f8fafc" stroke="#dbe3ed"/>
+    <text x="44" y="59" font-size="21" font-weight="700">Stage 1 · Give attention a head start</text>
+    <text x="44" y="85" font-size="15" fill="#475569">AdamW · attention and shared parameters trainable</text>
+    <text x="624" y="59" font-size="21" font-weight="700">Stage 2 · Train the full hybrid model</text>
+    <text x="624" y="85" font-size="15" fill="#475569">Muon + auxiliary AdamW · all parameters trainable</text>
+    <path d="M 536 149 L 583 149" fill="none" stroke="#64748b" stroke-width="3" marker-end="url(#arrow)"/>
+    <g font-size="15" text-anchor="middle">
+      <g fill="#eff6ff" stroke="#3b82f6" stroke-width="1.5">
+        <rect x="44" y="108" width="96" height="80" rx="9"/>
+        <rect x="624" y="108" width="96" height="80" rx="9"/>
+      </g>
+      <g fill="#e9eef4" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="5 4">
+        <rect x="158" y="108" width="96" height="80" rx="9"/>
+        <rect x="272" y="108" width="96" height="80" rx="9"/>
+        <rect x="386" y="108" width="96" height="80" rx="9"/>
+      </g>
+      <g fill="#fff3e8" stroke="#ea8b34" stroke-width="1.5">
+        <rect x="738" y="108" width="96" height="80" rx="9"/>
+        <rect x="852" y="108" width="96" height="80" rx="9"/>
+        <rect x="966" y="108" width="96" height="80" rx="9"/>
+      </g>
+      <g fill="#1d4ed8">
+        <text x="92" y="140" font-weight="700">Attention</text>
+        <text x="92" y="166">Trainable</text>
+        <text x="672" y="140" font-weight="700">Attention</text>
+        <text x="672" y="166">Trainable</text>
+      </g>
+      <g fill="#64748b">
+        <text x="206" y="140" font-weight="700">Recurrent</text>
+        <text x="206" y="166">Frozen</text>
+        <text x="320" y="140" font-weight="700">Recurrent</text>
+        <text x="320" y="166">Frozen</text>
+        <text x="434" y="140" font-weight="700">Recurrent</text>
+        <text x="434" y="166">Frozen</text>
+      </g>
+      <g fill="#9a4e0b">
+        <text x="786" y="140" font-weight="700">Recurrent</text>
+        <text x="786" y="166">Trainable</text>
+        <text x="900" y="140" font-weight="700">Recurrent</text>
+        <text x="900" y="166">Trainable</text>
+        <text x="1014" y="140" font-weight="700">Recurrent</text>
+        <text x="1014" y="166">Trainable</text>
+      </g>
+    </g>
+    <g font-size="14" fill="#475569">
+      <text x="44" y="216">Frozen blocks include mixer, MLP, and normalization.</text>
+      <text x="44" y="238">Shared embeddings and final norm remain trainable.</text>
+      <text x="624" y="216">Initialize from Stage 1 weights.</text>
+      <text x="624" y="238">Restart optimizer and learning-rate schedule.</text>
+    </g>
+    <text x="560" y="286" text-anchor="middle" font-size="14" fill="#64748b">Illustrated repeating block pattern: Attention–Recurrent–Recurrent–Recurrent</text>
+  </g>
+</svg>
