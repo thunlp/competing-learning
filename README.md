@@ -41,7 +41,7 @@ and optimization schedules.
 
 ## ⚙️ Installation
 
-Use Linux x86_64 and an NVIDIA GPU supporting BF16. The validated environment uses
+Use Linux x86_64 and an NVIDIA GPU supporting BF16. The provided environment uses
 Python 3.11.14, PyTorch 2.8.0 with CUDA 12.8, and Triton 3.4.0.
 
 ```bash
@@ -55,7 +55,7 @@ The Conda recipe installs the complete training, evaluation, and plotting enviro
 from [requirements-lock.txt](requirements-lock.txt). The CUDA installer verifies the
 official FlashAttention and causal-conv1d wheels against their SHA-256 digests.
 The code runs directly from this checkout.
-[Environment, alternative CUDA builds, and validation →](docs/ENVIRONMENT.md)
+[Environment and CUDA builds →](docs/ENVIRONMENT.md)
 
 <a id="quick-start"></a>
 
@@ -64,7 +64,7 @@ The code runs directly from this checkout.
 Check the pretraining launcher on **one allocated GPU**:
 
 ```bash
-TMPDIR=/tmp bash scripts/smoke_test.sh \
+bash scripts/smoke_test.sh \
   --output outputs/smoke --method bld --steps 1
 ```
 
@@ -72,13 +72,10 @@ This trains a small KDA hybrid for **one optimizer update during early pretraini
 and one after unfreezing**, using a local tokenizer and generated parquet data. It
 checks forward/backward passes, recurrent block freezing and unfreezing, the
 AdamW-to-Muon transition, and GPU model reload.
-Checkpoints, a training log, and `report.json` are saved under `outputs/smoke`.
-First-use kernel compilation can take several minutes.
+Outputs are saved under `outputs/smoke`.
 
 Use `--method both --steps 2` to check both vanilla and BLD, or add `--model gdn`
-or `--model gla` to check a transfer architecture. A fresh Conda environment has
-passed this BLD smoke test and the CPU release checks; see the
-[validation results](docs/ENVIRONMENT.md#clean-environment-checks).
+or `--model gla` to check a transfer architecture.
 
 <a id="section-3"></a>
 <a id="analysis-experiments"></a>
@@ -157,10 +154,6 @@ tied embeddings, NoPE, and 16,384-token contexts. Exact parameter counts and
 aggregate paper scores are in [results_table.csv](results_table.csv).
 
 </details>
-
-For Slurm, run `bash scripts/submit_main.sh 390m both` from the active environment.
-Set `PARTITION` for your cluster if needed. The launcher always excludes `g30` and
-preserves additional node exclusions.
 
 **[Full reproduction commands →](docs/REPRODUCE.md)** cover Spaced Retrieval,
 layer attribution, freezing/unfreezing, gradient interventions, retrieval-head

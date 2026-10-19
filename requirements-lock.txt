@@ -1,4 +1,4 @@
-# Validated Linux x86_64 / Python 3.11.14 environment, 2026-10-19.
+# Python dependencies for Linux x86_64 / Python 3.11.14.
 # Includes training, evaluation, plotting, and all Python transitive dependencies.
 # Install CUDA extensions separately with bash scripts/install_cuda.sh.
 absl-py==2.5.1

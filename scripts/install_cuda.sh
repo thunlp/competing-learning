@@ -51,7 +51,7 @@ for repository, asset_id, size, filename, digest in assets:
             wheels.append(str(wheel))
             continue
         print(f'Downloading official wheel: {filename}', flush=True)
-        response = subprocess.run(['curl', '-q', '-4', '--silent', '--show-error', '--location', '--fail',
+        response = subprocess.run(['curl', '-q', '--silent', '--show-error', '--location', '--fail',
             '--connect-timeout', '10', '--max-time', '60', '--retry', '2', '--range', '0-0',
             '--header', 'Accept: application/octet-stream', '--output', '/dev/null',
             '--write-out', '%{url_effective}', api_url], capture_output=True, text=True)
@@ -78,7 +78,7 @@ for repository, asset_id, size, filename, digest in assets:
                         chunk_path.unlink()
                         received = 0
                     transfer = partial.with_suffix('.download')
-                    response = subprocess.run(['curl', '-q', '-4', '--silent', '--show-error', '--location',
+                    response = subprocess.run(['curl', '-q', '--silent', '--show-error', '--location',
                         '--fail', '--connect-timeout', '10', '--max-time', '90', '--range',
                         f'{offset + received}-{end}', '--output', str(transfer), '--write-out',
                         '%{http_code}', download_url], capture_output=True)

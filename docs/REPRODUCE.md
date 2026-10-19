@@ -133,7 +133,7 @@ python -m evaluation.run --model /path/to/model --output outputs/eval/ruler \
   --benchmark ruler --ruler-data /path/to/ruler
 ```
 
-CSR averages ARC-Easy, ARC-Challenge, HellaSwag, PIQA (`acc_norm`), and BoolQ, WinoGrande, LAMBADA (`acc`). Recall averages the `contains` metric on Based SWDE, FDA, SQuAD, TriviaQA, DROP, and NQ-2048. WikiText reports `word_perplexity`. Evaluation uses zero demonstrations, greedy generation, and no chat template. The six Based task definitions are included under `evaluation/tasks/`; other tasks use lm-evaluation-harness. The paper development environment used harness 0.4.11.dev0. The clean release environment pins public harness 0.4.13, with all 14 task registrations checked. Sample records and task-level outputs are saved for auditing. `--limit` creates a development subset and must be omitted for paper scores.
+CSR averages ARC-Easy, ARC-Challenge, HellaSwag, PIQA (`acc_norm`), and BoolQ, WinoGrande, LAMBADA (`acc`). Recall averages the `contains` metric on Based SWDE, FDA, SQuAD, TriviaQA, DROP, and NQ-2048. WikiText reports `word_perplexity`. Evaluation uses zero demonstrations, greedy generation, and no chat template. The six Based task definitions are included under `evaluation/tasks/`; other tasks use lm-evaluation-harness 0.4.13. Task-level outputs are saved alongside aggregate results. `--limit` creates a development subset and must be omitted for paper scores.
 
 RULER expects `<ruler-data>/qwen3/<length>/<task>/test.jsonl`, using the raw NVIDIA/RULER schema (`input`, `answer_prefix`, `outputs`). It evaluates 1K/2K/4K/8K/16K contexts and averages 57 task–length entries, excluding CWE and the unsupported short QA combinations. The original task matching and result schema are retained.
 
