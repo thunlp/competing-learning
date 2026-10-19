@@ -17,10 +17,10 @@ layers learn retrieval first, they weaken the learning signal available to atten
 blocks early in pretraining, then unfreezing the full model.** The architecture stays
 the same throughout training.
 
-<img src="assets/results.png" alt="Vanilla and BLD results on Recall, RULER, and WikiText-2 for six KDA hybrid models from 180M to 1B parameters." width="100%">
+<img src="assets/results.png" alt="Vanilla and BLD results on CSR, Recall, and RULER for six KDA hybrid models from 180M to 1B parameters." width="100%">
 
-**KDA results across model scales.** BLD improves retrieval scores and reduces
-WikiText-2 perplexity across the six configurations. Values come from Table 1 of
+**KDA results across model scales.** CSR, Recall, and RULER scores compare Vanilla
+and BLD across the six configurations. Values come from Table 1 of
 the paper and are available in [results_table.csv](results_table.csv).
 
 <details>
