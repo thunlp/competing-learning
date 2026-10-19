@@ -27,18 +27,19 @@ Early pretraining uses 262,144 tokens per update, AdamW at 1e-4, linear warmup, 
 For an interrupted run, call `train.py` with the same resolved arguments plus `--resume_path <ckpt_directory> --resume_step <update>`. This restores optimizer, scheduler, RNG, and rank-specific dataloader state. The shell launcher starts each pretraining portion with fresh optimizer and schedule state and does not automatically resume interrupted runs.
 
 <a id="section-3"></a>
+<a id="analysis-experiments"></a>
 
-## Section 3: Competing Learning
+## Analysis Experiments
 
 Use one allocated GPU and the installed training environment. All synthetic data are generated locally; these experiments train from scratch without an external tokenizer, pretrained weights, or DCLM data. Each training command requires a new output directory.
 
-### Spaced Retrieval (Section 3.1)
+### Spaced Retrieval
 
 [Data generation](../experiments/retrieval/core.py) constructs five-digit keys with a delimiter, a gap of 64 or 8192 spaces, and a retrieval query. The model has four blocks in KDA–Attention–KDA–Attention order, hidden width 256, FFN width 512, and a twelve-symbol vocabulary; see [the configuration](../configs/model/retrieval.json). There are 50,000 distinct training keys and 2,000 held-out attribution pairs per gap. Original and counterfactual held-out keys are excluded from training.
 
 [The training entry point](../experiments/retrieval/run.py) defaults to 1,500 AdamW updates, 32 examples per update, and a 50:50 short/long-gap mixture. The learning rate warms up for 100 updates to 3e-4 and decays to 1e-5. Cross-entropy is computed only on the five answer tokens. Exact integer quotas implement each requested mixture, and the short/long losses accumulate before one optimizer update.
 
-### Layer retrieval ability and baseline (Section 3.2, Figure 1; Section 3.3.1, Figure 2)
+### Measuring layer retrieval ability
 
 ```bash
 python -m experiments.retrieval.run --output outputs/retrieval/baseline
@@ -52,7 +53,7 @@ Each pair probes one answer position, balanced across all five positions. Scores
 
 `core.native_accuracy` separately performs greedy autoregressive generation of all five answer digits. Its `first_accuracy`, `character_accuracy`, and `exact_accuracy` fields report first-digit, per-digit, and whole-key accuracy as fractions in [0, 1]. These accuracy fields and the signed retrieval ability score measure different quantities.
 
-### Freezing and unfreezing (Section 3.3.1, Figure 4)
+### Freezing and unfreezing recurrent blocks
 
 ```bash
 # Freeze entire KDA blocks after 175 completed updates:
@@ -67,7 +68,7 @@ python -m experiments.plot attribution \
 
 `--freeze-step s` starts masking updates to entire KDA blocks 0 and 2 at update `s + 1`, including their mixers, MLPs, and normalization. Other components remain trainable, and gradients still propagate through frozen blocks. `--unfreeze-step 500` resumes KDA updates at 501. Optimizer moments, the learning-rate schedule, random state, and data order continue through the intervention; unfreezing does not restart warmup. `--resume <checkpoint.pt>` resumes a saved run with the same seed, data seed, model configuration, and mixture and can branch into another freezing schedule.
 
-### Gradient evidence (Section 3.3.2, Figure 5)
+### Attention gradient dynamics
 
 ```bash
 # One seed, freezing after 175 and unfreezing after 225 updates:
@@ -83,7 +84,7 @@ python -m experiments.plot gradients --input outputs/gradients/freeze175 \
 
 `probe` measures unclipped gradients of first-answer-token cross-entropy on 32 fixed training examples at gap 8192. For each attention mixer, it takes the L2 norm of the **mean gradient vector** over examples, then divides by the never-frozen baseline norm at the same step and seed. The plot takes the geometric mean of these paired ratios across seeds separately for each attention mixer, then the arithmetic mean over the two mixers. Ratios above 1 indicate amplification relative to the baseline. No temporal smoothing is applied. Change `--input` to `freeze100` or `freeze150` for the other timings.
 
-### Gap-mixture experiments (Section 3.3.3, Figure 3)
+### Short- and long-distance mixtures
 
 ```bash
 # One mixture: 10% short-gap and 90% long-gap examples:
