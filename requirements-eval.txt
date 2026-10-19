@@ -5,3 +5,7 @@ scipy==1.17.1
 matplotlib==3.10.9
 nltk==3.9.3
 rouge-score==0.1.2
+wonderwords==2.2.0
+html2text==2025.4.15
+beautifulsoup4==4.15.0
+tenacity==9.2.1

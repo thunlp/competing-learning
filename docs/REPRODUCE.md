@@ -124,6 +124,12 @@ The full retrieval sweep writes `outputs/retrieval/seed<seed>/{baseline,freeze<s
 
 ## CSR, Recall, WikiText-2, and RULER (Tables 1–2, Appendix E)
 
+Prepare dependencies and datasets with the commands in the [evaluation guide](EVALUATION.md). CSR, Recall, and WikiText-2 can be downloaded ahead of evaluation:
+
+```bash
+python -m evaluation.prepare_data --benchmark lm
+```
+
 ```bash
 bash scripts/run_eval.sh outputs/bld/390m-bld-seed0-stage2 outputs/eval/390m-bld \
   --ruler-data /path/to/ruler
@@ -137,10 +143,11 @@ CSR averages ARC-Easy, ARC-Challenge, HellaSwag, PIQA (`acc_norm`), and BoolQ, W
 
 RULER expects `<ruler-data>/qwen3/<length>/<task>/test.jsonl`, using the raw NVIDIA/RULER schema (`input`, `answer_prefix`, `outputs`). It evaluates 1K/2K/4K/8K/16K contexts and averages 57 task–length entries, excluding CWE and the unsupported short QA combinations. The original task matching and result schema are retained.
 
-The generation wrapper is included; point it at a separately obtained NVIDIA/RULER checkout and its required source resources:
+Prepare the RULER generator and source resources, then generate the tokenizer-specific data:
 
 ```bash
-RULER_SOURCE=/path/to/RULER python -m evaluation.prepare_ruler \
+python -m evaluation.prepare_data --benchmark ruler
+python -m evaluation.prepare_ruler \
   --tokenizer-name qwen3 --tokenizer-path Qwen/Qwen3-0.6B \
   --out-root datasets/ruler
 ```

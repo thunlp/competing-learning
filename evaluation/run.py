@@ -34,16 +34,21 @@ def main():
     args=p.parse_args()
     if args.benchmark in ('ruler','all') and args.ruler_data is None:
         p.error('--ruler-data is required for RULER')
+    if args.benchmark in ('ruler','all'):
+        from .ruler import _ruler_v1_check_data, DEFAULT_RULER_V1_LENGTHS, DEFAULT_RULER_V1_TASKS
+        _ruler_v1_check_data(args.ruler_data, 'qwen3', DEFAULT_RULER_V1_LENGTHS, DEFAULT_RULER_V1_TASKS)
+    if args.benchmark in ('lm','all'):
+        from .prepare_data import load_lm_tasks
+        ready_tasks, task_manager = load_lm_tasks([*CSR, *RECALL, 'wikitext'])
     args.output.mkdir(parents=True,exist_ok=False)
     summary={}
     if args.benchmark in ('lm','all'):
         from lm_eval import evaluator
-        from lm_eval.tasks import TaskManager
         result=evaluator.simple_evaluate(model='hf',
             model_args=dict(pretrained=args.model,tokenizer=args.model,trust_remote_code=True,
                             max_length=65536,dtype='bfloat16'),
-            tasks=[*CSR,*RECALL,'wikitext'],num_fewshot=0,batch_size=args.batch_size,
-            task_manager=TaskManager(include_path=str(Path(__file__).parent/'tasks')),
+            tasks=list(ready_tasks.values()),num_fewshot=0,batch_size=args.batch_size,
+            task_manager=task_manager,
             limit=args.limit,log_samples=True)
         # Keep sample-level outputs for score auditing without a dashboard.
         if result is not None:

@@ -14,17 +14,13 @@ RULER_V1_MATCH_TYPE={
 DEFAULT_RULER_V1_LENGTHS=[1024,2048,4096,8192,16384]
 DEFAULT_RULER_V1_TASKS=list(RULER_V1_MATCH_TYPE)
 def ruler_v1_skip_reason(task: str, length: int) -> Optional[str]:
-    """Combos that scripts/prepare_ruler_v1_data.py skips by default.
-
-    Must stay in sync with ``scripts/prepare_ruler_v1_data.py::task_length_skip_reason``.
-    Returning None means data is expected to exist on disk.
-    """
+    """Combinations excluded from the paper's 57-entry evaluation grid."""
     if task == "cwe":
-        return "cwe needs english_words.json (git-lfs missing)"
+        return "CWE is excluded from the paper's evaluation grid"
     if task == "qa_1" and length < 2048:
-        return f"qa.py (SQuAD) upstream bug at max_seq_length={length}<2048"
+        return "QA-1 is evaluated from 2048 tokens"
     if task == "qa_2" and length < 4096:
-        return f"qa.py (HotpotQA) upstream bug at max_seq_length={length}<4096"
+        return "QA-2 is evaluated from 4096 tokens"
     return None
 
 def collate_inputs_answers(batch):
@@ -202,7 +198,7 @@ def run_ruler_v1(
 ) -> List[dict]:
     """Evaluate RULER v1 (13 tasks) using the same HF + accelerate stack as run_niah.
 
-    Data layout (raw RULER schema, produced by scripts/prepare_ruler_v1_data.py):
+    Data layout (raw RULER schema, produced by evaluation.prepare_ruler):
       ``<data_root>/<tokenizer_name>/<length>/<task>/test.jsonl``
 
     The ``tokenizer_name`` is derived from ``tokenizer_path`` if not given;

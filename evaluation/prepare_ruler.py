@@ -1,36 +1,23 @@
 #!/usr/bin/env python
-"""Generate RULER v1 data for tiny-eval, indexed by tokenizer name.
+"""Generate the paper's RULER task/length grid for a selected tokenizer.
 
-For each (length, task) pair, calls NVIDIA/RULER@main's ``scripts/data/prepare.py``
-to generate ``test.jsonl`` and writes the *raw RULER* output to::
-
-    datasets/ruler/<tokenizer_name>/<length>/<task>/test.jsonl
-
-Each line has the original RULER fields::
-
-    {index, input, outputs, length, length_w_model_temp, answer_prefix, ...}
-
-This is consumed by ``evaluation.ruler.run_ruler_v1``, which uses
-``match_type='all'`` for ``niah/vt/cwe/fwe`` and ``'part'`` for ``qa``.
-
-Notes:
-- Does NOT use the NeMo-Skills CLI (no ``pip install -e .`` for Skills required).
-- Does NOT require git-lfs (only the bundled synthetic word lists are read).
-- Assumes the RULER repo is already cloned to
-  ``datasets/ruler/_src/RULER`` and that
-  ``synthetic/json/{PaulGrahamEssays.json,squad.json,hotpotqa.json,english_words.json}``
-  exist (see docs/REPRODUCE.md for setup).
+Prepare the generator and source corpora with ``python -m evaluation.prepare_data
+--benchmark ruler`` first. Raw RULER records are written to
+``<out-root>/<tokenizer-name>/<length>/<task>/test.jsonl``.
 """
 
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import os
 import json
 import subprocess
 import sys
 import time
 from pathlib import Path
+
+from .ruler import ruler_v1_skip_reason
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 RULER_SRC = Path(os.environ.get("RULER_SOURCE", "third_party/RULER")).resolve()
@@ -50,32 +37,32 @@ ESSAY_TASKS = {
 }
 QA_FILES = {"qa_1": "squad.json", "qa_2": "hotpotqa.json"}
 
-# Combos that this environment can't generate; the wrapper skips them up-front and
-# reports them in the [skipped] summary. Removed from this map = "generation is attempted".
-#
-#   cwe: requires `english_words.json` (~8.5 MB) which is a git-lfs pointer in the
-#        upstream repo. Install git-lfs and `git lfs pull` to enable.
-#   qa_1, qa_2 at length < 2048: RULER's qa.py has an infinite-loop bug when the
-#        max_seq_length is too small to fit ~10 SQuAD/HotpotQA documents
-#        (see scripts/data/synthetic/qa.py:196-206 in NVIDIA/RULER@main).
 def task_length_skip_reason(task: str, length: int) -> str | None:
-    if task == "cwe":
-        return "cwe needs english_words.json (git-lfs); install git-lfs + git lfs pull to enable"
-    # qa.py has an infinite loop when max_seq_length is too small to fit ~10 docs;
-    # empirically qa_1 (SQuAD ~100-300 toks/doc) fails at <2048, qa_2 (HotpotQA, larger) fails at <4096.
-    if task == "qa_1" and length < 2048:
-        return f"qa.py (SQuAD) infinite-loop bug at max_seq_length={length}<2048"
-    if task == "qa_2" and length < 4096:
-        return f"qa.py (HotpotQA) infinite-loop bug at max_seq_length={length}<4096"
-    return None
+    return ruler_v1_skip_reason(task, length)
 
 
 SUBPROCESS_TIMEOUT_SEC = 600
 
 
 def preflight(tasks):
+    missing = [name for name in ('wonderwords', 'tenacity', 'nltk', 'yaml', 'scipy', 'transformers')
+               if importlib.util.find_spec(name) is None]
+    if missing:
+        raise RuntimeError(f'Missing data-generation dependencies: {missing}. '
+                           'Install requirements-eval.txt before preparing RULER.')
+    import nltk
+    nltk_dir = Path(os.environ.get('NLTK_DATA', REPO_ROOT / 'datasets/nltk_data')).resolve()
+    nltk.data.path.insert(0, str(nltk_dir))
+    os.environ.setdefault('NLTK_DATA', str(nltk_dir))
+    for resource in ('punkt', 'punkt_tab'):
+        try:
+            nltk.data.find(f'tokenizers/{resource}')
+        except LookupError as error:
+            raise RuntimeError('Missing NLTK tokenizer data. Run '
+                               'python -m evaluation.prepare_data --benchmark ruler first.') from error
     if not RULER_PREPARE.exists():
-        raise FileNotFoundError(f"RULER prepare.py not found: {RULER_PREPARE}")
+        raise FileNotFoundError(f"RULER prepare.py not found: {RULER_PREPARE}. Run "
+                                "python -m evaluation.prepare_data --benchmark ruler first.")
     if any(t in ESSAY_TASKS for t in tasks):
         f = RULER_JSON_DIR / "PaulGrahamEssays.json"
         if not f.exists():
@@ -123,11 +110,20 @@ def generate(
     num_samples: int,
     out_root: Path,
     overwrite: bool,
-    expected_min_samples: int = 1,
+    expected_min_samples: int | None = None,
     timeout_sec: int = SUBPROCESS_TIMEOUT_SEC,
     force: bool = False,
 ):
-    preflight(tasks)
+    out_root = Path(out_root).resolve()
+    if Path(tokenizer_path).exists():
+        tokenizer_path = str(Path(tokenizer_path).resolve())
+    subprocess_env = dict(os.environ)
+    subprocess_env['PATH'] = str(Path(sys.executable).parent) + os.pathsep + os.environ.get('PATH', '')
+    required_tasks = [task for task in tasks if force or any(
+        task_length_skip_reason(task, length) is None for length in lengths)]
+    preflight(required_tasks)
+    if expected_min_samples is None:
+        expected_min_samples = num_samples
     failures = []
     successes = []
     skipped = []
@@ -167,7 +163,7 @@ def generate(
             try:
                 result = subprocess.run(
                     cmd, cwd=RULER_PREPARE.parent, check=False,
-                    capture_output=True, text=True, timeout=timeout_sec,
+                    capture_output=True, text=True, timeout=timeout_sec, env=subprocess_env,
                 )
             except subprocess.TimeoutExpired as e:
                 failures.append((length, task, f"timed out after {timeout_sec}s (likely infinite loop in upstream qa.py)"))
@@ -200,8 +196,8 @@ def main():
     p.add_argument("--timeout-sec", type=int, default=SUBPROCESS_TIMEOUT_SEC,
                    help="Per-subprocess timeout for one (length, task) pair.")
     p.add_argument("--force", action="store_true",
-                   help="Try every (length, task) even if marked unsupported (cwe, qa<2048). "
-                        "Useful after installing git-lfs to unlock cwe.")
+                   help="Generate combinations outside the paper's evaluation grid; "
+                        "additional source resources may be required.")
     args = p.parse_args()
 
     lengths = [int(x) for x in args.lengths.split(",")]
@@ -224,7 +220,7 @@ def main():
     )
     print(f"\n[summary] successes={len(successes)} skipped={len(skipped)} failures={len(failures)}")
     if skipped:
-        print("[SKIPPED] (env can't generate; see comments in prepare_ruler_v1_data.py)")
+        print("[SKIPPED] (outside the paper's evaluation grid)")
         for L, t, reason in skipped:
             print(f"  L={L} {t}: {reason}")
     if failures:

@@ -29,6 +29,8 @@ python -m pip check
 
 The complete dependency versions are pinned in `requirements-lock.txt`. The smaller `requirements.txt`, `requirements-cuda.txt`, and `requirements-eval.txt` groups are also available for manual installation.
 
+Evaluation data preparation also uses NLTK, Wonderwords, Tenacity, Beautiful Soup, and html2text, all included in the lock file. NLTK tokenizer data and benchmark datasets are downloaded separately with the commands in the [evaluation guide](EVALUATION.md).
+
 ## CUDA extensions
 
 `scripts/install_cuda.sh` downloads official FlashAttention and causal-conv1d wheels and verifies their SHA-256 digests. These wheels target Linux x86_64, Python 3.11, and PyTorch 2.8.0 with CUDA 12 and the C++11 ABI. `PYTHON` selects the interpreter, and `WHEEL_DIR` selects the download cache, which defaults to `outputs/wheels`.

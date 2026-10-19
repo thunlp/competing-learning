@@ -161,6 +161,20 @@ identification and masking, CSR, Recall, RULER, WikiText-2, LongPPL, context
 utilization, and scaling fits. Training corpora, benchmark data, tokenizer files,
 and model weights are obtained separately.
 
+## 🧪 Evaluation
+
+Prepare the benchmark datasets and metric resources, then evaluate an exported model:
+
+```bash
+python -m evaluation.prepare_data --benchmark lm
+bash scripts/run_eval.sh /path/to/model outputs/eval/lm --benchmark lm
+```
+
+CSR, Recall, and WikiText-2 use the evaluation framework's dataset downloads. RULER
+requires generated data for the model's tokenizer; LongPPL also uses a reference
+model. The [evaluation guide](docs/EVALUATION.md) covers dependencies, data sources,
+downloads, generation, and offline caches.
+
 ## 🗂️ Code Layout
 
 ```text
