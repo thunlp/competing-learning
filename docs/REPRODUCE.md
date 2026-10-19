@@ -11,9 +11,9 @@ DCLM_STAGE1=/path/to/shard01 DCLM_STAGE2=/path/to/shards02-10 \
 
 Repeat with `180m`, `250m`, `510m`, `750m`, and `1b` for Table 1, and `gdn-400m`/`gla-400m` for Table 2. GDN/GLA retain the 390M KDA token budgets rather than rescaling to their parameter counts. The default output is `outputs/bld/<model>-<method>-seed0-stage<1|2>/`.
 
-Both stages use a repeating Attention–Recurrent–Recurrent–Recurrent pattern, tied embeddings, and NoPE. Stage 1 freezes entire recurrent blocks for BLD, including mixer, MLP, and normalization; attention blocks, embeddings, and final normalization remain trainable. Stage 2 updates all parameters. Both methods restart optimizer/scheduler state at the stage boundary.
+All models use a repeating Attention–Recurrent–Recurrent–Recurrent pattern, tied embeddings, and NoPE. During early pretraining, BLD freezes entire recurrent blocks, including mixer, MLP, and normalization; attention blocks, embeddings, and final normalization remain trainable. All parameters are then updated throughout the remainder of pretraining. Both methods reset optimizer and schedule state when early pretraining ends, continuing from the current weights. The launcher names `stage1` and `stage2` refer to early and remaining pretraining, respectively.
 
-| Size | Stage 1 updates | Stage 2 updates | Stage 1 warmup | Stage 2 warmup/decay |
+| Size | Early updates | Remaining updates | Early warmup | Remaining warmup/decay |
 | --- | ---: | ---: | ---: | ---: |
 | 180M | 458 | 2,289 | 23 | 229 |
 | 250M | 1,068 | 5,341 | 53 | 534 |
@@ -22,9 +22,9 @@ Both stages use a repeating Attention–Recurrent–Recurrent–Recurrent patter
 | 750M | 4,064 | 20,319 | 198 | 2,032 |
 | 1B | 6,104 | 30,518 | 305 | 3,052 |
 
-Stage 1 uses 262,144 tokens per update, AdamW at 1e-4, linear warmup, and constant LR thereafter. Stage 2 uses 524,288 tokens per update, Muon at 0.02 plus auxiliary AdamW at 0.001, with warmup, stable LR, and cosine decay to 5% of the peak LR. The JSON files preserve the paper runs' actual update counts; budgets are approximate multiples of non-embedding parameters.
+Early pretraining uses 262,144 tokens per update, AdamW at 1e-4, linear warmup, and constant LR thereafter. Remaining pretraining uses 524,288 tokens per update, Muon at 0.02 plus auxiliary AdamW at 0.001, with warmup, stable LR, and cosine decay to 5% of the peak LR. The JSON files preserve the paper runs' actual update counts; budgets are approximate multiples of non-embedding parameters.
 
-For an interrupted stage, call `train.py` with the same resolved arguments plus `--resume_path <ckpt_directory> --resume_step <update>`. This restores optimizer, scheduler, RNG, and rank-specific dataloader state. The shell launcher starts fresh stages and does not automatically resume interrupted runs.
+For an interrupted run, call `train.py` with the same resolved arguments plus `--resume_path <ckpt_directory> --resume_step <update>`. This restores optimizer, scheduler, RNG, and rank-specific dataloader state. The shell launcher starts each pretraining portion with fresh optimizer and schedule state and does not automatically resume interrupted runs.
 
 ## Spaced Retrieval and attribution (Section 3, Appendix A)
 

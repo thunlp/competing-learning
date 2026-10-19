@@ -46,7 +46,7 @@ The recorded runtime uses CUDA 12.8; use a compatible NVIDIA driver. A local `nv
 
 ## Local settings
 
-Set `DCLM_STAGE1`, `DCLM_STAGE2`, and optionally `TOKENIZER` for real training. `PYTHON` selects an interpreter, `NPROC` controls the GPU process count, `OUTPUT_DIR` selects the output root, and `MASTER_PORT` selects the distributed port. `CONFIG_DIR` can point to a separate configuration tree for small experiments; the default is `configs/`.
+Set `DCLM_STAGE1` for early pretraining data, `DCLM_STAGE2` for remaining pretraining data, and optionally `TOKENIZER` for real training. `PYTHON` selects an interpreter, `NPROC` controls the GPU process count, `OUTPUT_DIR` selects the output root, and `MASTER_PORT` selects the distributed port. `CONFIG_DIR` can point to a separate configuration tree for small experiments; the default is `configs/`.
 
 The smoke test creates a local tokenizer and two synthetic parquet views, then calls `scripts/run_main.sh` with a separate configuration tree. It retains the real AdamW-to-Muon transition and BLD block freezing. Results and data caches are written under its output directory. Compiled kernels are reused from `outputs/.kernel-cache/` by default; existing `TRITON_CACHE_DIR` and `TORCHINDUCTOR_CACHE_DIR` settings are honored. All of these generated files are excluded from the source archive.
 
@@ -75,24 +75,24 @@ Keep `TMPDIR` short for PyTorch data-loader workers. A deeply nested temporary p
 
 The command completed successfully on one A800 with new kernel caches. The 1,254,787-parameter KDA hybrid used a local tokenizer, synthetic text, and 128-token contexts:
 
-| BLD stage | Updates | Loss | Gradient norm |
+| Pretraining portion | Updates | Loss | Gradient norm |
 | --- | ---: | ---: | ---: |
-| Stage 1, AdamW | 1 | 5.0312 | 12.1 |
-| Stage 2, Muon + AdamW | 1 | 5.0000 | 16.2 |
+| Early pretraining, AdamW | 1 | 5.0312 | 12.1 |
+| Remaining pretraining, Muon + AdamW | 1 | 5.0000 | 16.2 |
 
-Both checkpoints and final exports were saved. Frozen recurrent weights matched initialization exactly in Stage 1, attention weights changed, and recurrent weights changed after Stage 2 unfreezing. The weights-only stage handoff passed, and the exported final model reloaded and produced finite GPU logits. The first update took 384.6 seconds including cold compilation; the second took 10.9 seconds including additional stage-specific compilation. These are execution checks, not paper benchmark results.
+Both checkpoints and model exports were saved. Frozen recurrent weights matched initialization exactly during early pretraining, attention weights changed, and recurrent weights changed after unfreezing. Continuation from the learned weights with a fresh optimizer passed, and the exported final model reloaded and produced finite GPU logits. The first update took 384.6 seconds including cold compilation; the second took 10.9 seconds including additional optimizer-specific compilation. These are execution checks, not paper benchmark results.
 
 ## GPU smoke-test result
 
 Validated on 2026-10-19 with the runtime and A800 GPU listed above. A 1,254,787-parameter KDA hybrid used generated text, a local tokenizer, and 128-token contexts. The actual `run_main.sh` launcher completed the following optimizer updates:
 
-| Method | Stage | Updates | First loss | Final loss |
+| Method | Pretraining portion | Updates | First loss | Final loss |
 | --- | --- | ---: | ---: | ---: |
-| Vanilla | AdamW | 2 | 5.0312 | 4.6562 |
-| Vanilla | Muon + AdamW | 2 | 4.9375 | 4.3125 |
-| BLD | AdamW, recurrent blocks frozen | 2 | 5.0312 | 4.8438 |
-| BLD | Muon + AdamW, all blocks trainable | 2 | 4.9688 | 4.3125 |
+| Vanilla | Early pretraining, AdamW | 2 | 5.0312 | 4.6562 |
+| Vanilla | Remaining pretraining, Muon + AdamW | 2 | 4.9375 | 4.3125 |
+| BLD | Early pretraining, AdamW, recurrent blocks frozen | 2 | 5.0312 | 4.8438 |
+| BLD | Remaining pretraining, Muon + AdamW, all blocks trainable | 2 | 4.9688 | 4.3125 |
 
-All eight gradient norms were finite and nonzero. Each stage saved both checkpoints and its final model export; both final models reloaded and produced finite GPU logits. Stage 1 BLD recurrent weights matched initialization exactly, its attention weights changed, and recurrent weights changed after Stage 2 unfreezing. The paper configuration files were unchanged.
+All eight gradient norms were finite and nonzero. Both pretraining portions saved checkpoints and model exports; both final models reloaded and produced finite GPU logits. BLD recurrent weights matched initialization exactly during early pretraining, its attention weights changed, and recurrent weights changed after unfreezing. The paper configuration files were unchanged.
 
 The first update took approximately 410 seconds including cold compilation/autotuning; cached updates took approximately 0.54–0.67 seconds. These synthetic-run losses and timings validate execution only; they are not paper benchmark results. The CPU release suite also passed all nine checks.

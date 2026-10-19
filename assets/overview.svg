@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 300" role="img" aria-labelledby="title desc">
-  <title id="title">Better Layer Division: two-stage pretraining</title>
-  <desc id="desc">Stage 1 uses AdamW and freezes complete recurrent blocks. Stage 2 loads Stage 1 weights, unfreezes every block, and starts Muon with auxiliary AdamW.</desc>
+  <title id="title">Better Layer Division during pretraining</title>
+  <desc id="desc">BLD freezes recurrent blocks during early pretraining to give attention a first-mover advantage. All blocks are then unfrozen for the remainder of pretraining.</desc>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/>
@@ -10,9 +10,9 @@
   <g font-family="Arial, Helvetica, sans-serif" fill="#1e293b">
     <rect x="20" y="22" width="500" height="236" rx="14" fill="#f8fafc" stroke="#dbe3ed"/>
     <rect x="600" y="22" width="500" height="236" rx="14" fill="#f8fafc" stroke="#dbe3ed"/>
-    <text x="44" y="59" font-size="21" font-weight="700">Stage 1 · Give attention a head start</text>
+    <text x="44" y="59" font-size="21" font-weight="700">Early pretraining</text>
     <text x="44" y="85" font-size="15" fill="#475569">AdamW · attention and shared parameters trainable</text>
-    <text x="624" y="59" font-size="21" font-weight="700">Stage 2 · Train the full hybrid model</text>
+    <text x="624" y="59" font-size="21" font-weight="700">Remaining pretraining</text>
     <text x="624" y="85" font-size="15" fill="#475569">Muon + auxiliary AdamW · all parameters trainable</text>
     <path d="M 536 149 L 583 149" fill="none" stroke="#64748b" stroke-width="3" marker-end="url(#arrow)"/>
     <g font-size="15" text-anchor="middle">
@@ -56,7 +56,7 @@
     <g font-size="14" fill="#475569">
       <text x="44" y="216">Frozen blocks include mixer, MLP, and normalization.</text>
       <text x="44" y="238">Shared embeddings and final norm remain trainable.</text>
-      <text x="624" y="216">Initialize from Stage 1 weights.</text>
+      <text x="624" y="216">Continue from current weights; unfreeze all blocks.</text>
       <text x="624" y="238">Restart optimizer and learning-rate schedule.</text>
     </g>
     <text x="560" y="286" text-anchor="middle" font-size="14" fill="#64748b">Illustrated repeating block pattern: Attention–Recurrent–Recurrent–Recurrent</text>

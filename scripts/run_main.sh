@@ -15,7 +15,7 @@ case "$MODEL" in
   *) echo "Unknown model: $MODEL" >&2; exit 2 ;;
 esac
 case "$METHOD" in bld|vanilla|both) ;; *) echo 'Method: bld, vanilla, or both' >&2; exit 2 ;; esac
-case "$STAGE" in all|stage1|stage2) ;; *) echo 'Stage: all, stage1, or stage2' >&2; exit 2 ;; esac
+case "$STAGE" in all|stage1|stage2) ;; *) echo 'Pretraining portion: all, stage1 (early), or stage2 (remaining)' >&2; exit 2 ;; esac
 NPROC=${NPROC:-$GPUS}
 case "$NPROC" in 1|2|4|8|16) ;; *) echo 'NPROC must divide 16' >&2; exit 2 ;; esac
 ACCUM=$((16 / NPROC))
@@ -33,7 +33,7 @@ if [[ "$STAGE" != stage1 ]]; then
   [[ -d "$DCLM_STAGE2" ]] || { echo 'DCLM_STAGE2 must be a directory' >&2; exit 2; }
 fi
 if [[ "$STAGE" == all && "$(realpath "$DCLM_STAGE1")" == "$(realpath "$DCLM_STAGE2")" ]]; then
-  echo 'The two stages require disjoint DCLM data views' >&2; exit 2
+  echo 'Early and remaining pretraining require disjoint DCLM data views' >&2; exit 2
 fi
 FAMILY=kda
 [[ "$MODEL" == gdn-* ]] && FAMILY=gdn
@@ -71,7 +71,7 @@ run_method() {
   fi
   if [[ "$STAGE" != stage1 ]]; then
     : "${DCLM_STAGE2:?Set DCLM_STAGE2 to disjoint global-shards-02-10 parquet data}"
-    [[ -s "$checkpoint" ]] || { echo "Missing Stage 1 weights: $checkpoint" >&2; exit 1; }
+    [[ -s "$checkpoint" ]] || { echo "Missing early pretraining weights: $checkpoint" >&2; exit 1; }
     launch "${common[@]}" --train_config "$CONFIG_DIR/training/$SCHEDULE/stage2.json" \
       --data_path "$DCLM_STAGE2" --run_name "${MODEL}-${method}-seed${SEED}-stage2" --init_from "$checkpoint"
   fi

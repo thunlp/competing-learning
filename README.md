@@ -13,9 +13,9 @@ Tsinghua University · <sup>∗</sup> Equal contribution
 Hybrid language models combine recurrent mixers with softmax attention, but these
 components can **compete to learn the same retrieval functions**. When recurrent
 layers learn retrieval first, they weaken the learning signal available to attention.
-**Better Layer Division (BLD) gives attention a head start by freezing recurrent
-blocks early in pretraining, then unfreezing the full model.** The architecture stays
-the same throughout training.
+**Better Layer Division (BLD) freezes RNN layers during early pretraining, giving
+attention a first-mover advantage in Competing Learning.** This division of labor is
+preserved and reinforced throughout the remainder of pretraining.
 
 <img src="assets/results.png" alt="Vanilla and BLD results on CSR, Recall, and RULER for six KDA hybrid models from 180M to 1B parameters." width="100%">
 
@@ -26,13 +26,16 @@ the paper and are available in [results_table.csv](results_table.csv).
 <details>
 <summary>🔍 How BLD is trained</summary>
 
-<img src="assets/overview.svg" alt="Stage 1 trains attention and shared parameters with AdamW while freezing complete recurrent blocks. Stage 2 unfreezes all blocks and starts Muon with auxiliary AdamW from the Stage 1 weights." width="100%">
+<img src="assets/overview.svg" alt="BLD freezes recurrent blocks during early pretraining to give attention a first-mover advantage, then unfreezes all blocks for the remainder of pretraining." width="100%">
 
-Stage 1 freezes each complete recurrent block, including its mixer, MLP, and
-normalization. Attention blocks, embeddings, and the final normalization remain
-trainable. Stage 2 loads the learned weights and starts a fresh optimizer and
-schedule. The vanilla baseline updates every block in both stages, using the same
-architecture, data, token budgets, and optimizer schedules.
+During early pretraining, BLD freezes each complete recurrent block, including its
+mixer, MLP, and normalization. Attention blocks, embeddings, and the final
+normalization remain trainable. All blocks are then unfrozen for the remainder of
+pretraining, continuing from the current weights. AdamW is used during early
+pretraining, followed by Muon with auxiliary AdamW after unfreezing; both methods
+reset the optimizer and schedule at this point. The vanilla baseline updates every
+block throughout pretraining, using the same architecture, data, token budgets,
+and optimization schedules.
 
 </details>
 
@@ -58,22 +61,23 @@ The code runs directly from this checkout.
 
 ## 🚀 Quick Start
 
-Check the real two-stage training launcher on **one allocated GPU**:
+Check the pretraining launcher on **one allocated GPU**:
 
 ```bash
 TMPDIR=/tmp bash scripts/smoke_test.sh \
   --output outputs/smoke --method bld --steps 1
 ```
 
-This trains a small KDA hybrid for **one optimizer update per stage**, using a local
-tokenizer and generated parquet data. It checks forward/backward passes, recurrent
-block freezing and unfreezing, the AdamW-to-Muon handoff, and GPU model reload.
+This trains a small KDA hybrid for **one optimizer update during early pretraining
+and one after unfreezing**, using a local tokenizer and generated parquet data. It
+checks forward/backward passes, recurrent block freezing and unfreezing, the
+AdamW-to-Muon transition, and GPU model reload.
 Checkpoints, a training log, and `report.json` are saved under `outputs/smoke`.
 First-use kernel compilation can take several minutes.
 
 Use `--method both --steps 2` to check both vanilla and BLD, or add `--model gdn`
 or `--model gla` to check a transfer architecture. A fresh Conda environment has
-passed this single-update BLD run and all nine CPU checks; see the
+passed this BLD smoke test and all nine CPU checks; see the
 [validation results](docs/ENVIRONMENT.md#clean-environment-checks).
 
 <a id="reproduce-results"></a>
@@ -81,8 +85,8 @@ passed this single-update BLD run and all nine CPU checks; see the
 ## 📊 Reproduce Results
 
 Prepare two disjoint DCLM parquet directories, each with a `text` column: global
-shard 01 for Stage 1 and global shards 02–10 for Stage 2. Then launch the paper's
-390M KDA configuration for both methods:
+shard 01 for early pretraining and global shards 02–10 for the remainder of
+pretraining. Then launch the paper's 390M KDA configuration for both methods:
 
 ```bash
 export DCLM_STAGE1=/path/to/dclm/global-shard-01
@@ -92,8 +96,8 @@ export TOKENIZER=Qwen/Qwen3-0.6B  # or a local tokenizer directory
 bash scripts/run_main.sh 390m both
 ```
 
-Use `bld` or `vanilla` to select one method. Append `stage1` or `stage2` to run an
-individual stage. Outputs are saved under
+Use `bld` or `vanilla` to select one method. Append `stage1` or `stage2` to run only
+the early or remaining portion of pretraining, respectively. Outputs are saved under
 `outputs/bld/<model>-<method>-seed0-stage<1|2>/`; use a new `OUTPUT_DIR` for repeat
 runs. `NPROC` controls the GPU count while preserving the global batch.
 
@@ -131,7 +135,7 @@ and model weights are obtained separately.
 
 ```text
 scripts/                       # Main training, smoke tests, and experiment launchers
-configs/                       # Paper architectures and two-stage schedules
+configs/                       # Paper architectures and pretraining schedules
 modeling/                      # KDA, Gated DeltaNet, and GLA hybrid models
 data/                          # DCLM packing and passkey data
 optim/                         # AdamW, Muon, and learning-rate schedules

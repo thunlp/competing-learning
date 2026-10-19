@@ -1,4 +1,4 @@
-"""Run the real two-stage launcher for one or two updates per stage."""
+"""Run the pretraining launcher for one or two updates in each pretraining portion."""
 
 import argparse
 import importlib.metadata
