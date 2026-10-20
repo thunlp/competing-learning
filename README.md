@@ -8,7 +8,7 @@ Tsinghua University · <sup>∗</sup> Equal contribution
 
 <a href="https://arxiv.org/abs/2610.26830"><img src="assets/paper-badge.svg" alt="Read the paper on arXiv: 2610.26830" width="220" height="32"></a>
 
-[🚀 Quick Start](#quick-start) · [🔬 Analysis](#analysis-experiments) · [📊 Reproduce Results](docs/REPRODUCE.md) · [⚙️ Environment](docs/ENVIRONMENT.md) · [📚 Citation](#citation)
+[🚀 Quick Start](#quick-start) · [🤗 Models](#models) · [🔬 Analysis](#analysis-experiments) · [📊 Reproduce Results](docs/REPRODUCE.md) · [⚙️ Environment](docs/ENVIRONMENT.md) · [📚 Citation](#citation)
 
 </div>
 
@@ -40,6 +40,27 @@ block throughout pretraining, using the same architecture, data, token budgets,
 and optimization schedules.
 
 </details>
+
+<a id="models"></a>
+
+## 🤗 Pretrained Models
+
+Ten public KDA hybrid checkpoints are available on Hugging Face, with Vanilla and
+BLD at each scale. Model names use total parameter counts, including embeddings.
+
+| Scale | Vanilla | BLD |
+| --- | --- | --- |
+| 250M | [CL-Vanilla-250M](https://huggingface.co/xingyushenai/CL-Vanilla-250M) | [CL-BLD-250M](https://huggingface.co/xingyushenai/CL-BLD-250M) |
+| 390M | [CL-Vanilla-390M](https://huggingface.co/xingyushenai/CL-Vanilla-390M) | [CL-BLD-390M](https://huggingface.co/xingyushenai/CL-BLD-390M) |
+| 510M | [CL-Vanilla-510M](https://huggingface.co/xingyushenai/CL-Vanilla-510M) | [CL-BLD-510M](https://huggingface.co/xingyushenai/CL-BLD-510M) |
+| 750M | [CL-Vanilla-750M](https://huggingface.co/xingyushenai/CL-Vanilla-750M) | [CL-BLD-750M](https://huggingface.co/xingyushenai/CL-BLD-750M) |
+| 1B | [CL-Vanilla-1B](https://huggingface.co/xingyushenai/CL-Vanilla-1B) | [CL-BLD-1B](https://huggingface.co/xingyushenai/CL-BLD-1B) |
+
+For example, download the 390M BLD checkpoint for local evaluation:
+
+```bash
+hf download xingyushenai/CL-BLD-390M --local-dir outputs/models/CL-BLD-390M
+```
 
 ## ⚙️ Installation
 
@@ -160,8 +181,8 @@ aggregate paper scores are in [results_table.csv](results_table.csv).
 **[Full reproduction commands →](docs/REPRODUCE.md)** cover Spaced Retrieval,
 layer attribution, freezing/unfreezing, gradient interventions, retrieval-head
 identification and masking, CSR, Recall, RULER, WikiText-2, LongPPL, context
-utilization, and scaling fits. Training corpora, benchmark data, tokenizer files,
-and model weights are obtained separately.
+utilization, and scaling fits. Training corpora and benchmark data are obtained
+separately; pretrained weights are linked in [Models](#models).
 
 ## 🧪 Evaluation
 
