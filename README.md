@@ -6,7 +6,7 @@
 
 Tsinghua University · <sup>∗</sup> Equal contribution
 
-[📄 Paper](https://arxiv.org/abs/2610.26830) · [PDF](https://arxiv.org/pdf/2610.26830)
+<a href="https://arxiv.org/abs/2610.26830"><img src="assets/paper-badge.svg" alt="Read the paper on arXiv: 2610.26830" width="220" height="32"></a>
 
 [🚀 Quick Start](#quick-start) · [🔬 Analysis](#analysis-experiments) · [📊 Reproduce Results](docs/REPRODUCE.md) · [⚙️ Environment](docs/ENVIRONMENT.md) · [📚 Citation](#citation)
 

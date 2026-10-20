@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="220" height="32" viewBox="0 0 220 32" role="img" aria-labelledby="title desc">
+  <title id="title">Read the paper on arXiv: 2610.26830</title>
+  <desc id="desc">Competing Learning in Hybrid Architectures</desc>
+  <defs>
+    <clipPath id="corners"><rect width="220" height="32" rx="6"/></clipPath>
+  </defs>
+  <g clip-path="url(#corners)">
+    <rect width="220" height="32" fill="#1f2937"/>
+    <rect width="72" height="32" fill="#b31b1b"/>
+  </g>
+  <g fill="#fff" font-family="Arial, Helvetica, sans-serif" text-anchor="middle">
+    <text x="36" y="21" font-size="16">arXiv</text>
+    <text x="133" y="21" font-size="14">2610.26830</text>
+  </g>
+  <path d="M198 20l8-8m-7 0h7v7" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
