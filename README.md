@@ -207,5 +207,9 @@ If you use this code in your research, please cite:
   title = {Competing Learning in Hybrid Architectures},
   author = {Xingyu Shen and Yingfa Chen and Ziqing Qiao and Chaojun Xiao and Xu Han and Zhiyuan Liu},
   year = {2027},
+  eprint={2610.26830},
+  archivePrefix={arXiv},
+  primaryClass={cs.CL},
+  url={https://arxiv.org/abs/2610.26830}, 
 }
 ```
