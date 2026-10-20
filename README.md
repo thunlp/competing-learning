@@ -6,6 +6,8 @@
 
 Tsinghua University · <sup>∗</sup> Equal contribution
 
+[📄 Paper](https://arxiv.org/abs/2610.26830) · [PDF](https://arxiv.org/pdf/2610.26830)
+
 [🚀 Quick Start](#quick-start) · [🔬 Analysis](#analysis-experiments) · [📊 Reproduce Results](docs/REPRODUCE.md) · [⚙️ Environment](docs/ENVIRONMENT.md) · [📚 Citation](#citation)
 
 </div>
@@ -203,13 +205,13 @@ tests/                         # CPU release checks
 If you use this code in your research, please cite:
 
 ```bibtex
-@misc{shen2027competinglearning,
+@misc{shen2026competinglearning,
   title = {Competing Learning in Hybrid Architectures},
   author = {Xingyu Shen and Yingfa Chen and Ziqing Qiao and Chaojun Xiao and Xu Han and Zhiyuan Liu},
-  year = {2027},
-  eprint={2610.26830},
-  archivePrefix={arXiv},
-  primaryClass={cs.CL},
-  url={https://arxiv.org/abs/2610.26830}, 
+  year = {2026},
+  eprint = {2610.26830},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CL},
+  url = {https://arxiv.org/abs/2610.26830},
 }
 ```
