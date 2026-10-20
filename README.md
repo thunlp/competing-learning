@@ -19,9 +19,9 @@ layers learn retrieval first, they weaken the learning signal available to atten
 attention a first-mover advantage in Competing Learning.** This division of labor is
 preserved and reinforced throughout the remainder of pretraining.
 
-<img src="assets/results-wikitext2-recall-ruler.png" alt="Vanilla and BLD results on WikiText-2 perplexity, Recall, and RULER for six KDA hybrid models from 180M to 1B parameters." width="100%">
+<img src="assets/results-training-loss-recall-ruler.png" alt="Vanilla and BLD results on training loss, Recall, and RULER for six KDA hybrid models from 180M to 1B parameters." width="100%">
 
-**KDA results across model scales.** WikiText-2 perplexity (↓), Recall (↑), and
+**KDA results across model scales.** Training Loss (↓), Recall (↑), and
 RULER (↑) compare Vanilla and BLD across the six configurations. Values come from
 Table 1 of the paper and are available in [results_table.csv](results_table.csv).
 
